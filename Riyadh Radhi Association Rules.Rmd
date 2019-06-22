@@ -1,0 +1,124 @@
+---
+title: "Riyadh Radhi Association Rules HW8"
+author: "Riyadh Radhi"
+date: "March 19, 2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Association Rules
+
+
+```{r message=FALSE, warning=FALSE}
+
+rm(list = ls())
+library(arules)
+library(arulesViz)
+library(MASS)
+library(dplyr)
+```
+
+### 1. Reading Data + Creating Transaction Object
+
+We will first read our data and split them to create a transaction object
+```{r}
+df <- read.csv("Online Retail.csv")
+splitted_df <- split(df[,"Description"],df[,"InvoiceNo"])
+transaction <- as(splitted_df, "transactions")
+```
+
+Then we check the summary of our transaction
+
+```{r}
+summary(transaction)
+```
+
+
+## 2.Creating Rules with Specific Requirement + Sorting Based on Confidence
+
+Now I will use the *apriori* function to create rules based on what needed and at the same time, I will sort
+the rules based on the **confidence** value in a **decreasing** manner 
+
+```{r}
+rules <- apriori(transaction, parameter = list(minlen =2, maxlen = 5, supp=0.001 , conf=0.7 ))
+rules <- sort(rules, decreasing = TRUE, na.last = NA, by = "confidence")
+rules
+```
+
+### 3.Inspection The First 30 Rules + Explaining rule #1 & #20
+
+```{r}
+inspect(rules[1:30])
+```
+
+*First Rule*
+```{r}
+inspect(rules[1])
+```
+To get the support value manually,we will divide the (count/number of invoices)
+**(19/18536 =0.0010250323)** which is the same as the one in the rule,and to get the lift value, we divide that support value by the propability is A and B(lift = support/P(A)*P(B)) 
+
+**Note** : you can find the number of invoices in the transaction list as number of elements
+
+*Rule Twenty*
+
+```{r}
+inspect(rules[20])
+```
+
+To get the support value manually,we will divide the (count/number of invoices)
+**(22/18536 =0.00118687)** which is the same as the one in the rule, and to get the lift value, we divide that support value by the propability is A and B(lift = support/P(A)*P(B)) 
+
+### 4. Calculating Lift Value
+
+```{r}
+d <- subset(rules, subset = lhs %ain% c("REGENCY TEA PLATE GREEN","REGENCY CAKE FORK") & rhs %in% "REGENCY TEA PLATE ROSES")
+inspect(d[1])
+```
+
+As we can see lift increased to **56.5122**
+
+
+### 5. Creating a Graph Object for the First Twenty Rules
+
+```{r}
+plot(rules[1:20],method= "graph")
+```
+
+So what we see in the graph are our **first 20 rules**. They have different sizes based on the support value
+starting from the smallest with *0.001* support ending with the largest size with *0.002*. Our color intensity 
+tells us about the lift value, the more intense the color, the higher our lift value is. 
+
+Also the graph actually shows the rules based on our description, so we can conclude the if/statement of 
+our rules by looking the arrows of each rule and wheather the arrow is outward or inward and so on. 
+
+###(THIS IS EXTRA) I will plot the first five method just to have clear graph because the previews graph is overwhelming.
+
+```{r}
+plot(rules[1:5],method= "graph")
+```
+
+### 6.What Customers Had Purchased before Buying **REGENCY CAKE FORK**
+
+Please note I'm returning only the lhs of my subset because we are interested in before **REGNCY CAKE FORK** product
+
+```{r}
+s <- subset(rules, subset = rhs %in% "REGENCY CAKE FORK")
+inspect(unique(s@lhs))
+```
+
+
+### 7. What Products Were Purchased after/along With **REGENCY CAKE FORK**
+
+
+Plese note that I will use unique with inspect to get only the unique products without repetitives
+or unnessceray information
+
+```{r}
+f <- subset(rules, subset = lhs %in% "REGENCY CAKE FORK")
+inspect(c(unique(f@lhs),unique(f@rhs)))
+```
+
